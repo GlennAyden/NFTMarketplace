@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserWallet {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  createdAt DateTime @default(now())
+  collections Collection[]
+  events    MintEvent[]
+}
+
+model Collection {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  title          String
+  symbol         String
+  description    String?
+  imageUrl       String?
+  chainId        Int
+  contract       String?      @unique
+  artType        ArtType
+  creatorId      String
+  creator        UserWallet   @relation(fields: [creatorId], references: [id])
+  stages         MintStage[]
+  createdAt      DateTime     @default(now())
+}
+
+model MintStage {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  name         String
+  priceEth     Decimal    @db.Decimal(36, 18)
+  startAt      DateTime
+  endAt        DateTime?
+  free         Boolean    @default(false)
+}
+
+model MintEvent {
+  id           String     @id @default(cuid())
+  chainId      Int
+  txHash       String
+  blockNumber  BigInt
+  logIndex     Int
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  walletId     String
+  wallet       UserWallet @relation(fields: [walletId], references: [id])
+  tokenId      String
+  qty          Int
+  priceEth     Decimal    @db.Decimal(36, 18)
+  timestamp    DateTime
+
+  @@unique([txHash, logIndex])
+}
+
+model IndexState {
+  id        String   @id @default(cuid())
+  chainId   Int
+  contract  String
+  lastBlock BigInt   @default(0)
+
+  @@unique([chainId, contract])
+}
+
+enum ArtType {
+  same
+  unique
+}
+
